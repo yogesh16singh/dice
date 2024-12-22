@@ -5,7 +5,7 @@ DiceDB
 <a href="https://dicedb.io/get-started/installation/">![Docs](https://img.shields.io/badge/docs-00A1FF?style=flat-square)</a>
 <a target="_blank" href="https://discord.gg/6r8uXWtXh7"><img src="https://dcbadge.limes.pink/api/server/6r8uXWtXh7?style=flat" alt="discord community" /></a>
 
-DiceDB is an open sourc, redis-compliant, reactive, scalable, highly available, unified cache optimized for modern hardware.
+DiceDB is an open source, redis-compliant, reactive, scalable, highly available, unified cache optimized for modern hardware.
 
 > [!CAUTION]
 > DiceDB is under active development and supports a subset of Redis commands. Inconsistent behavior is expected. Feel free to go through the [open issues](https://github.com/DiceDB/dice/issues) and contribute to help us speed up the development.
