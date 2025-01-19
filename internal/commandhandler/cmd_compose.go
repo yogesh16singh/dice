@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-package iothread
+package commandhandler
 
 import (
 	"math"
@@ -24,7 +24,7 @@ import (
 	"github.com/dicedb/dice/internal/ops"
 )
 
-// This file contains functions used by the IOThread to handle and process responses
+// This file contains functions used by the CommandHandler to handle and process responses
 // from multiple shards during distributed operations. For commands that are executed
 // across several shards, such as MultiShard commands, dedicated functions are responsible
 // for aggregating and managing the results.
@@ -254,6 +254,20 @@ func composeKeys(responses ...ops.StoreResponse) interface{} {
 }
 
 func composeFlushDB(responses ...ops.StoreResponse) interface{} {
+	for idx := range responses {
+		if responses[idx].EvalResponse.Error != nil {
+			return responses[idx].EvalResponse.Error
+		}
+	}
+
+	return clientio.OK
+}
+
+// composePFMerge processes responses from multiple shards for an "PFMerge" operation.
+// It loops through the responses to check if any shard returned an error.
+// If an error is detected, it immediately returns that error. Otherwise, it returns "OK"
+// to indicate that all merged HyperLogLog is set to the destination variable successfully.
+func composePFMerge(responses ...ops.StoreResponse) interface{} {
 	for idx := range responses {
 		if responses[idx].EvalResponse.Error != nil {
 			return responses[idx].EvalResponse.Error
