@@ -1,28 +1,98 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/dgryski/go-farm"
+	"github.com/dicedb/dice/internal/errors"
 	"github.com/dicedb/dice/internal/object"
+	"github.com/dicedb/dice/internal/shardmanager"
+	"github.com/dicedb/dice/internal/store"
+	"github.com/dicedb/dicedb-go/wire"
 )
+
+// nolint: stylecheck
+const INFINITE_EXPIRATION = int64(-1)
+
+type Cmd struct {
+	C        *wire.Command
+	IsReplay bool
+	ClientID string
+	Mode     string
+	Meta     *CommandMeta
+}
+
+func (c *Cmd) String() string {
+	return fmt.Sprintf("%s %s", c.C.Cmd, strings.Join(c.C.Args, " "))
+}
+
+func (c *Cmd) Fingerprint() uint32 {
+	return farm.Fingerprint32([]byte(c.String()))
+}
+
+func (c *Cmd) Key() string {
+	if len(c.C.Args) > 0 {
+		return c.C.Args[0]
+	}
+	return ""
+}
+
+func (c *Cmd) Execute(sm *shardmanager.ShardManager) (*CmdRes, error) {
+	res := cmdResNil
+	err := errors.ErrUnknownCmd(c.C.Cmd)
+	start := time.Now()
+	if c.Meta == nil {
+		meta, ok := CommandRegistry.CommandMetas[c.C.Cmd]
+		if !ok {
+			return res, err
+		}
+		c.Meta = meta
+	}
+	res, err = c.Meta.Execute(c, sm)
+	slog.Debug("command executed",
+		slog.Any("cmd", c.String()),
+		slog.String("client_id", c.ClientID),
+		slog.String("mode", c.Mode),
+		slog.Any("took_ns", time.Since(start).Nanoseconds()))
+	return res, err
+}
+
+type CmdRes struct {
+	R        *wire.Response
+	ClientID string
+}
+
+type CommandMeta struct {
+	Name      string
+	HelpShort string
+	Syntax    string
+	Examples  string
+	HelpLong  string
+	Eval      func(c *Cmd, s *store.Store) (*CmdRes, error)
+	Execute   func(c *Cmd, sm *shardmanager.ShardManager) (*CmdRes, error)
+}
+
+type CmdRegistry struct {
+	CommandMetas map[string]*CommandMeta
+}
+
+func Total() int {
+	return len(CommandRegistry.CommandMetas)
+}
+
+func (r *CmdRegistry) AddCommand(cmd *CommandMeta) {
+	r.CommandMetas[cmd.Name] = cmd
+}
+
+var CommandRegistry CmdRegistry = CmdRegistry{
+	CommandMetas: map[string]*CommandMeta{},
+}
 
 // DiceDBCmd represents a command structure to be executed
 // within a DiceDB system. This struct emulates the way DiceDB commands
@@ -53,7 +123,7 @@ type DiceDBCmd struct {
 	InternalObjs []*object.InternalObj
 }
 
-type RedisCmds struct {
+type DiceDBCmds struct {
 	Cmds      []*DiceDBCmd
 	RequestID uint32
 }
@@ -64,19 +134,43 @@ func (cmd *DiceDBCmd) Repr() string {
 }
 
 // GetFingerprint returns a 32-bit fingerprint of the command and its arguments.
-func (cmd *DiceDBCmd) GetFingerprint() uint32 {
+func (cmd *DiceDBCmd) Fingerprint() uint32 {
 	return farm.Fingerprint32([]byte(cmd.Repr()))
 }
 
-// GetKey Returns the key which the command operates on.
+// Key Returns the key which the command operates on.
 //
 // TODO: This is a naive implementation which assumes that the first argument is the key.
 // This is not true for all commands, however, for now this is only used by the watch manager,
 // which as of now only supports a small subset of commands (all of which fit this implementation).
-func (cmd *DiceDBCmd) GetKey() string {
+func (cmd *DiceDBCmd) Key() string {
 	var c string
 	if len(cmd.Args) > 0 {
 		c = cmd.Args[0]
 	}
 	return c
 }
+
+var cmdResNil = &CmdRes{R: &wire.Response{
+	Value: &wire.Response_VNil{VNil: true},
+}}
+
+var cmdResOK = &CmdRes{R: &wire.Response{
+	Value: &wire.Response_VStr{VStr: "OK"},
+}}
+
+var cmdResInt1 = &CmdRes{R: &wire.Response{
+	Value: &wire.Response_VInt{VInt: 1},
+}}
+
+var cmdResInt0 = &CmdRes{R: &wire.Response{
+	Value: &wire.Response_VInt{VInt: 0},
+}}
+
+var cmdResIntNegOne = &CmdRes{R: &wire.Response{
+	Value: &wire.Response_VInt{VInt: -1},
+}}
+
+var cmdResIntNegTwo = &CmdRes{R: &wire.Response{
+	Value: &wire.Response_VInt{VInt: -2},
+}}

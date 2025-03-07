@@ -27,27 +27,29 @@ help:  ## Display this help
 
 build: ## generate the dicedb binary for the current OS and architecture
 	@echo "Building for $(GOOS)/$(GOARCH)"
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o ./dicedb
+	CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o ./dicedb
 
 build-debug: ## generate the dicedb binary for the current OS and architecture
 	@echo "Building for $(GOOS)/$(GOARCH)"
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -gcflags="all=-N -l" -o ./dicedb
+	CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -gcflags="all=-N -l" -o ./dicedb
 
 ##@ Testing
 
 # Changing the parallel package count to 1 due to a possible race condition which causes the tests to get stuck.
 # TODO: Fix the tests to run in parallel, and remove the -p=1 flag.
 test: ## run the integration tests
-	go test -race -count=1 -p=1 ./integration_tests/...
+	go clean -testcache
+	CGO_ENABLED=1 go test -race -count=1 -p=1 ./tests/...
 
 test-one: ## run a single integration test function by name (e.g. make test-one TEST_FUNC=TestSetGet)
-	go test -v -race -count=1 --run $(TEST_FUNC) ./integration_tests/...
+	go clean -testcache
+	CGO_ENABLED=1 go test -v -race -count=1 --run $(TEST_FUNC) ./tests/...
 
 unittest: ## run the unit tests
-	go test -race -count=1 ./internal/...
+	CGO_ENABLED=1 go test -race -count=1 ./internal/...
 
 unittest-one: ## run a single unit test function by name (e.g. make unittest-one TEST_FUNC=TestSetGet)
-	go test -v -race -count=1 --run $(TEST_FUNC) ./internal/...
+	CGO_ENABLED=1 go test -race -count=1 --run $(TEST_FUNC) ./internal/...
 
 ##@ Benchmarking
 
@@ -71,7 +73,7 @@ run-benchmark-large: ## run the memtier benchmark with large parameters
 
 ##@ Development
 run: ## run dicedb with the default configuration
-	go run main.go
+	go run main.go --engine ironhawk --log-level debug
 
 run-docker: ## run dicedb in a Docker container
 	docker run -p 7379:7379 dicedb/dicedb:latest
@@ -81,7 +83,8 @@ format: ## format the code using go fmt
 
 GOLANGCI_LINT_VERSION := 1.60.1
 
-lint: check-golangci-lint ## run golangci-lint
+lint:
+	gofmt -w .
 	golangci-lint run ./...
 
 check-golangci-lint:
@@ -94,6 +97,7 @@ check-golangci-lint:
 
 clean: ## clean the dicedb binary
 	@echo "Cleaning build artifacts..."
+	go clean -cache -modcache
 	rm -f dicedb
 	@echo "Clean complete."
 
@@ -109,3 +113,17 @@ release: ## build and push the Docker image to Docker Hub with the latest tag an
 push-binary-remote:
 	$(MAKE) build
 	scp -i ${SSH_PEM_PATH} ./dicedb ubuntu@${REMOTE_HOST}:.
+
+add-license-notice:
+	./add_license_notice.sh
+
+kill:
+	@lsof -t -i :7379 | xargs -r kill -9
+
+git-repair:
+	find .git/objects/ -type f -empty | xargs rm
+	git fetch -p
+	git fsck --full
+
+generate-docs:
+	go run ./scripts/generate-docs/main.go

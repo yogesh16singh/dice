@@ -1,18 +1,5 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package eval
 
@@ -22,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dicedb/dice/internal/clientio"
 	"github.com/dicedb/dice/internal/errors"
 	"github.com/dicedb/dice/internal/object"
 	"github.com/dicedb/dice/internal/store"
@@ -108,14 +94,14 @@ func TestGetValueFromHashMap(t *testing.T) {
 	assert.NotNil(t, response.Result, "Expected a non-nil value to be fetched for key 'key1' and field 'field1'")
 	assert.Equal(t, value, response.Result, "Expected 'value1' to be fetched for key 'key1' and field 'field1'")
 
-	// Test case: Fetching a non-existing field (should return clientio.NIL and no error)
+	// Test case: Fetching a non-existing field (should return NIL and no error)
 	response = getValueFromHashMap(key, "nonfield", store)
-	assert.Equal(t, clientio.NIL, response.Result, "Expected clientio.NIL for a non-existing field")
+	assert.Equal(t, NIL, response.Result, "Expected NIL for a non-existing field")
 	assert.Nil(t, response.Error, "Expected no error when fetching a non-existing field from the hashmap")
 
-	// Test case: Fetching a non-existing key (should return clientio.NIL and ErrKeyNotFound)
+	// Test case: Fetching a non-existing key (should return NIL and ErrKeyNotFound)
 	response = getValueFromHashMap("nonkey", field, store)
-	assert.Equal(t, clientio.NIL, response.Result, "Expected clientio.NIL for a non-existing key")
+	assert.Equal(t, NIL, response.Result, "Expected NIL for a non-existing key")
 	assert.Nil(t, response.Error, "Expected no error for a non-existing key")
 }
 

@@ -1,18 +1,5 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package eval
 
@@ -23,7 +10,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/dicedb/dice/internal/clientio"
 	dstore "github.com/dicedb/dice/internal/store"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +32,7 @@ func TestBloomFilter(t *testing.T) {
 	args = append(args, "bf", "0.01", "10000") // Add key, error rate and capacity
 	resp = evalBFRESERVE(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.OK)
+	assert.ObjectsAreEqualValues(resp.Result, OK)
 
 	// BF.RESERVE bf1
 	args = []string{"bf1"}
@@ -64,22 +50,22 @@ func TestBloomFilter(t *testing.T) {
 	args = []string{"bf", "hello"} // BF.ADD bf hello
 	resp = evalBFADD(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.IntegerOne)
+	assert.ObjectsAreEqualValues(resp.Result, IntegerOne)
 
 	args[1] = "world" // BF.ADD bf world
 	resp = evalBFADD(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.IntegerOne)
+	assert.ObjectsAreEqualValues(resp.Result, IntegerOne)
 
 	args[1] = "hello" // BF.ADD bf hello
 	resp = evalBFADD(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.IntegerZero)
+	assert.ObjectsAreEqualValues(resp.Result, IntegerZero)
 	// Try adding element into a non-existing filter
 	args = []string{"bf2", "hello"} // BF.ADD bf2 hello
 	resp = evalBFADD(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.IntegerOne)
+	assert.ObjectsAreEqualValues(resp.Result, IntegerOne)
 
 	// BF.EXISTS arity test
 	args = []string{"bf"}
@@ -90,23 +76,23 @@ func TestBloomFilter(t *testing.T) {
 	args = []string{"bf", "hello"} // BF.EXISTS bf hello
 	resp = evalBFEXISTS(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.IntegerOne)
+	assert.ObjectsAreEqualValues(resp.Result, IntegerOne)
 
 	args[1] = "hello" // BF.EXISTS bf world
 	resp = evalBFEXISTS(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.IntegerOne)
+	assert.ObjectsAreEqualValues(resp.Result, IntegerOne)
 
 	args[1] = "programming" // BF.EXISTS bf programming
 	resp = evalBFEXISTS(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.IntegerZero)
+	assert.ObjectsAreEqualValues(resp.Result, IntegerZero)
 
 	// Try searching for an element in a non-existing filter
 	args = []string{"bf3", "hello"} // BF.EXISTS bf3 hello
 	resp = evalBFEXISTS(args, store)
 	assert.Nil(t, resp.Error)
-	assert.ObjectsAreEqualValues(resp.Result, clientio.IntegerZero)
+	assert.ObjectsAreEqualValues(resp.Result, IntegerZero)
 }
 
 func TestGetOrCreateBloomFilter(t *testing.T) {

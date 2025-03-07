@@ -1,25 +1,11 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package eval
 
 import (
 	"testing"
 
-	"github.com/dicedb/dice/internal/clientio"
 	diceerrors "github.com/dicedb/dice/internal/errors"
 	dstore "github.com/dicedb/dice/internal/store"
 )
@@ -76,7 +62,7 @@ func testCMSInitByDim(t *testing.T, store *dstore.Store) {
 		"cms initbydim - correct width and depth": {
 			input: []string{"cms_key", "1000", "5"},
 			migratedOutput: EvalResponse{
-				Result: clientio.OK,
+				Result: OK,
 				Error:  nil,
 			},
 		},
@@ -137,7 +123,7 @@ func testCMSInitByProb(t *testing.T, store *dstore.Store) {
 		"cms initbyprob - correct error rate and probability": {
 			input: []string{"cms_key1", "0.01", "0.01"},
 			migratedOutput: EvalResponse{
-				Result: clientio.OK,
+				Result: OK,
 				Error:  nil,
 			},
 		},
@@ -407,7 +393,7 @@ func testCMSMerge(t *testing.T, store *dstore.Store) {
 			},
 			input: []string{"cms_key5", "1", "test"},
 			migratedOutput: EvalResponse{
-				Result: clientio.OK,
+				Result: OK,
 				Error:  nil,
 			},
 		},
@@ -427,7 +413,7 @@ func testCMSMerge(t *testing.T, store *dstore.Store) {
 			},
 			input: []string{"cms_key5", "2", "test", "test1", "WEIGHTS", "1", "2"},
 			migratedOutput: EvalResponse{
-				Result: clientio.OK,
+				Result: OK,
 				Error:  nil,
 			},
 		},

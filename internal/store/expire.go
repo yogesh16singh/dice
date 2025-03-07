@@ -1,18 +1,5 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package store
 
@@ -77,7 +64,6 @@ func expireSample(store *Store) float32 {
 }
 
 // DeleteExpiredKeys deletes all the expired keys - the active way
-// Sampling approach: https://redis.io/commands/expire/
 func DeleteExpiredKeys(store *Store) {
 	for {
 		frac := expireSample(store)
@@ -107,13 +93,15 @@ func EvaluateAndSetExpiry(subCommands []string, newExpiry int64, key string,
 	if obj == nil {
 		return false, nil
 	}
-	shouldSetExpiry = true
-	// if no condition exists
+	shouldSetExpiry = false
+
+	// If no sub-command is provided, set the expiry
 	if len(subCommands) == 0 {
 		store.SetUnixTimeExpiry(obj, newExpiry)
-		return shouldSetExpiry, nil
+		return true, nil
 	}
 
+	// Get the previous expiry time
 	expireTime, ok := GetExpiry(obj, store)
 	if ok {
 		prevExpiry = &expireTime
@@ -125,26 +113,34 @@ func EvaluateAndSetExpiry(subCommands []string, newExpiry int64, key string,
 		switch subCommand {
 		case NX:
 			nxCmd = true
-			if prevExpiry != nil {
-				shouldSetExpiry = false
+
+			// Set the expiration only if the key does not already have an expiration time.
+			if prevExpiry == nil {
+				shouldSetExpiry = true
 			}
 		case XX:
 			xxCmd = true
-			if prevExpiry == nil {
-				shouldSetExpiry = false
+
+			// Set the expiration only if the key already has an expiration time.
+			if prevExpiry != nil {
+				shouldSetExpiry = true
 			}
 		case GT:
 			gtCmd = true
-			if prevExpiry == nil || *prevExpiry > uint64(newExpInMilli) {
-				shouldSetExpiry = false
+
+			// Set the expiration only if the new expiration time is greater than the current one.
+			if prevExpiry != nil && uint64(newExpInMilli) > *prevExpiry {
+				shouldSetExpiry = true
 			}
 		case LT:
 			ltCmd = true
-			if prevExpiry != nil && *prevExpiry < uint64(newExpInMilli) {
-				shouldSetExpiry = false
+
+			// Set the expiration only if the new expiration time is less than the current one.
+			if prevExpiry != nil && uint64(newExpInMilli) < *prevExpiry {
+				shouldSetExpiry = true
 			}
 		default:
-			return false, diceerrors.ErrGeneral("Unsupported option " + subCommands[i])
+			return false, diceerrors.ErrGeneral("unsupported option " + subCommands[i])
 		}
 	}
 

@@ -1,18 +1,5 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package eval
 
@@ -28,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dicedb/dice/internal/clientio"
 	diceerrors "github.com/dicedb/dice/internal/errors"
 	"github.com/dicedb/dice/internal/object"
 	dstore "github.com/dicedb/dice/internal/store"
@@ -113,9 +99,9 @@ func newCountMinSketch(opts *CountMinSketchOpts) *CountMinSketch {
 	}
 
 	cms.matrix = make([][]uint64, opts.depth)
-
+	flatMatrix := make([]uint64, opts.depth*opts.width) // single memory allocation
 	for row := uint64(0); row < opts.depth; row++ {
-		cms.matrix[row] = make([]uint64, opts.width)
+		cms.matrix[row] = flatMatrix[row*opts.width : (row+1)*opts.width : (row+1)*opts.width]
 	}
 
 	return cms
@@ -396,7 +382,7 @@ func evalCMSMerge(args []string, store *dstore.Store) *EvalResponse {
 		destination.mergeMatrices(sources, weights, args[0], keys)
 
 		return &EvalResponse{
-			Result: clientio.OK,
+			Result: OK,
 			Error:  nil,
 		}
 	}
@@ -432,7 +418,7 @@ func evalCMSMerge(args []string, store *dstore.Store) *EvalResponse {
 	destination.mergeMatrices(sources, weights, args[0], keys)
 
 	return &EvalResponse{
-		Result: clientio.OK,
+		Result: OK,
 		Error:  nil,
 	}
 }
@@ -564,7 +550,7 @@ func evalCMSINITBYDIM(args []string, store *dstore.Store) *EvalResponse {
 	}
 
 	return &EvalResponse{
-		Result: clientio.OK,
+		Result: OK,
 		Error:  nil,
 	}
 }
@@ -596,7 +582,7 @@ func evalCMSINITBYPROB(args []string, store *dstore.Store) *EvalResponse {
 	}
 
 	return &EvalResponse{
-		Result: clientio.OK,
+		Result: OK,
 		Error:  nil,
 	}
 }

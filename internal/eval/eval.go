@@ -1,18 +1,5 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package eval
 
@@ -22,7 +9,6 @@ import (
 	"time"
 
 	"github.com/dicedb/dice/config"
-	"github.com/dicedb/dice/internal/clientio"
 	"github.com/dicedb/dice/internal/comm"
 	diceerrors "github.com/dicedb/dice/internal/errors"
 	dstore "github.com/dicedb/dice/internal/store"
@@ -96,45 +82,17 @@ func init() {
 	TxnCommands = map[string]bool{"EXEC": true, "DISCARD": true}
 }
 
-// evalPING returns with an encoded "PONG"
-// If any message is added with the ping command,
-// the message will be returned.
-func evalPING(args []string, store *dstore.Store) []byte {
-	var b []byte
-
-	if len(args) >= 2 {
-		return diceerrors.NewErrArity("PING")
-	}
-
-	if len(args) == 0 {
-		b = clientio.Encode("PONG", true)
-	} else {
-		b = clientio.Encode(args[0], false)
-	}
-
-	return b
-}
-
-// evalECHO returns the argument passed by the user
-func evalECHO(args []string, store *dstore.Store) []byte {
-	if len(args) != 1 {
-		return diceerrors.NewErrArity("ECHO")
-	}
-
-	return clientio.Encode(args[0], false)
-}
-
 // EvalAUTH returns with an encoded "OK" if the user is authenticated
 // If the user is not authenticated, it returns with an encoded error message
 // TODO: Needs to be removed after http and websocket migrated to the multithreading
 func EvalAUTH(args []string, c *comm.Client) []byte {
 	var err error
 
-	if config.DiceConfig.Auth.Password == "" {
+	if config.Config.Password == "" {
 		return diceerrors.NewErrWithMessage("AUTH <password> called without any password configured for the default user. Are you sure your configuration is correct?")
 	}
 
-	username := config.DiceConfig.Auth.UserName
+	username := config.Config.Username
 	var password string
 
 	if len(args) == 1 {
@@ -146,9 +104,9 @@ func EvalAUTH(args []string, c *comm.Client) []byte {
 	}
 
 	if err = c.Session.Validate(username, password); err != nil {
-		return clientio.Encode(err, false)
+		return Encode(err, false)
 	}
-	return clientio.RespOK
+	return RespOK
 }
 
 func evalHELLO(args []string, store *dstore.Store) []byte {
@@ -157,7 +115,7 @@ func evalHELLO(args []string, store *dstore.Store) []byte {
 	}
 
 	var resp []interface{}
-	serverID = fmt.Sprintf("%s:%d", config.DiceConfig.RespServer.Addr, config.DiceConfig.RespServer.Port)
+	serverID = fmt.Sprintf("%s:%d", config.Config.Host, config.Config.Port)
 	resp = append(resp,
 		"proto", 2,
 		"id", serverID,
@@ -165,7 +123,7 @@ func evalHELLO(args []string, store *dstore.Store) []byte {
 		"role", "master",
 		"modules", []interface{}{})
 
-	return clientio.Encode(resp, false)
+	return Encode(resp, false)
 }
 
 // evalSLEEP sets db to sleep for the specified number of seconds.
@@ -182,5 +140,5 @@ func evalSLEEP(args []string, store *dstore.Store) []byte {
 		return diceerrors.NewErrWithMessage(diceerrors.IntOrOutOfRangeErr)
 	}
 	time.Sleep(time.Duration(durationSec) * time.Second)
-	return clientio.RespOK
+	return RespOK
 }

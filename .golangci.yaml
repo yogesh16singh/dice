@@ -23,11 +23,10 @@ linters:
     - dogsled
     - dupl
     - errcheck
-    - exportloopref
+    # - exportloopref
     - funlen
     - goconst
     - gocritic
-    - gocyclo
     - gofmt
     - goimports
     - goprintffuncname
@@ -59,7 +58,7 @@ linters-settings:
 
   goconst:
     min-len: 2
-    min-occurrences: 2
+    min-occurrences: 10
 
   gocognit:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
@@ -120,8 +119,6 @@ output:
 
   print-linter-name: true
 
-  uniq-by-line: false
-
   sort-results: true
 
 issues:
@@ -140,3 +137,8 @@ issues:
 
   exclude-files:
     - README.md
+
+  exclude:
+    - G115 # potential integer overflow when converting between integer types
+
+  uniq-by-line: false

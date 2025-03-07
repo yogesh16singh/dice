@@ -1,32 +1,48 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package eval
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/dicedb/dice/internal/clientio"
 	diceerrors "github.com/dicedb/dice/internal/errors"
-	dstore "github.com/dicedb/dice/internal/store"
+	"github.com/dicedb/dice/internal/store"
 )
 
-func evalBITPOS(args []string, store *dstore.Store) *EvalResponse {
+type RespType int
+
+var RespNIL = []byte("$-1\r\n")
+var RespOK = []byte("+OK\r\n")
+var RespQueued = []byte("+QUEUED\r\n")
+var RespZero = []byte(":0\r\n")
+var RespOne = []byte(":1\r\n")
+var RespMinusOne = []byte(":-1\r\n")
+var RespMinusTwo = []byte(":-2\r\n")
+var RespEmptyArray = []byte("*0\r\n")
+
+const (
+	NIL                RespType = iota // Represents an empty or null response.
+	OK                                 // Represents a successful "OK" response.
+	CommandQueued                      // Represents that a command has been queued for execution.
+	IntegerZero                        // Represents the integer value zero in RESP format.
+	IntegerOne                         // Represents the integer value one in RESP format.
+	IntegerNegativeOne                 // Represents the integer value negative one in RESP format.
+	IntegerNegativeTwo                 // Represents the integer value negative two in RESP format.
+	EmptyArray                         // Represents an empty array in RESP format.
+)
+
+func Encode(value interface{}, isSimple bool) []byte {
+	if isSimple {
+		return []byte(fmt.Sprintf(":%v\r\n", value))
+	}
+	return []byte(fmt.Sprintf(":%v\r\n", value))
+}
+
+func evalBITPOS(args []string, st *store.Store) *EvalResponse {
 	if len(args) < 2 || len(args) > 5 {
 		return &EvalResponse{
 			Result: nil,
@@ -35,7 +51,7 @@ func evalBITPOS(args []string, store *dstore.Store) *EvalResponse {
 	}
 
 	key := args[0]
-	obj := store.Get(key)
+	obj := st.Get(key)
 
 	bitToFind, err := parseBitToFind(args[1])
 	if err != nil {
@@ -48,13 +64,13 @@ func evalBITPOS(args []string, store *dstore.Store) *EvalResponse {
 	if obj == nil {
 		if bitToFind == 0 {
 			return &EvalResponse{
-				Result: clientio.IntegerZero,
+				Result: IntegerZero,
 				Error:  nil,
 			}
 		}
 
 		return &EvalResponse{
-			Result: clientio.IntegerNegativeOne,
+			Result: IntegerNegativeOne,
 			Error:  nil,
 		}
 	}
@@ -118,7 +134,7 @@ func parseOptionalParams(args []string, byteLen int) (start, end int, rangeType 
 	if len(args) > 2 {
 		rangeType = strings.ToUpper(args[2])
 		if rangeType != BYTE && rangeType != BIT {
-			return 0, 0, "", false, diceerrors.ErrSyntax
+			return 0, 0, "", false, diceerrors.ErrInvalidSyntax("BITPOS")
 		}
 	}
 	return start, end, rangeType, endRangeProvided, err

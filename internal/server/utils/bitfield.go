@@ -1,18 +1,5 @@
-// This file is part of DiceDB.
-// Copyright (C) 2024 DiceDB (dicedb.io).
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Copyright (c) 2022-present, DiceDB contributors
+// All rights reserved. Licensed under the BSD 3-Clause License. See LICENSE file in the project root for full license information.
 
 package utils
 
@@ -90,7 +77,7 @@ func ParseBitfieldOps(args []string, readOnly bool) (ops []BitFieldOp, err error
 		switch strings.ToUpper(args[i]) {
 		case GET:
 			if len(args) <= i+2 {
-				return nil, diceerrors.ErrSyntax
+				return nil, diceerrors.ErrInvalidSyntax("BITFIELD")
 			}
 			eType, eVal, offset, err := parseBitfieldEncodingAndOffset(args[i+1 : i+3])
 			if err != nil {
@@ -107,7 +94,7 @@ func ParseBitfieldOps(args []string, readOnly bool) (ops []BitFieldOp, err error
 			isReadOnlyCommand = true
 		case SET:
 			if len(args) <= i+3 {
-				return nil, diceerrors.ErrSyntax
+				return nil, diceerrors.ErrInvalidSyntax("BITFIELD")
 			}
 			eType, eVal, offset, err := parseBitfieldEncodingAndOffset(args[i+1 : i+3])
 			if err != nil {
@@ -127,7 +114,7 @@ func ParseBitfieldOps(args []string, readOnly bool) (ops []BitFieldOp, err error
 			i += 4
 		case INCRBY:
 			if len(args) <= i+3 {
-				return nil, diceerrors.ErrSyntax
+				return nil, diceerrors.ErrInvalidSyntax("BITFIELD")
 			}
 			eType, eVal, offset, err := parseBitfieldEncodingAndOffset(args[i+1 : i+3])
 			if err != nil {
@@ -147,7 +134,7 @@ func ParseBitfieldOps(args []string, readOnly bool) (ops []BitFieldOp, err error
 			i += 4
 		case OVERFLOW:
 			if len(args) <= i+1 {
-				return nil, diceerrors.ErrSyntax
+				return nil, diceerrors.ErrInvalidSyntax("BITFIELD")
 			}
 			switch strings.ToUpper(args[i+1]) {
 			case WRAP, FAIL, SAT:
@@ -164,7 +151,7 @@ func ParseBitfieldOps(args []string, readOnly bool) (ops []BitFieldOp, err error
 			})
 			i += 2
 		default:
-			return nil, diceerrors.ErrSyntax
+			return nil, diceerrors.ErrInvalidSyntax("BITFIELD")
 		}
 
 		if readOnly && !isReadOnlyCommand {
